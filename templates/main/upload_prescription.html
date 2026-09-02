@@ -1,0 +1,168 @@
+{% extends 'main/base.html' %}
+{% block content %}
+<div style="max-width:560px; margin:0 auto;">
+
+    <h2 class="mb-1">Prescription image</h2>
+    <p class="med-meta mb-4">For patient: <strong style="color:var(--ink)">{{ patient.username }}</strong></p>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if patient_profile.prescription_image %}
+    <div class="card p-3 mb-4 text-center">
+        <p class="med-name mb-2">Current prescription</p>
+        <img src="{{ patient_profile.prescription_image.url }}" alt="Prescription"
+             style="max-width:100%; max-height:350px; border-radius:10px; border:1px solid var(--line); object-fit:contain;">
+        <div class="mt-3">
+            {% if role == 'doctor' or role == 'caregiver' %}
+                <a href="{% url 'delete_prescription_for' patient.id %}" class="btn btn-outline-danger btn-sm"
+                   onclick="return confirm('Remove this prescription image?')">Remove image</a>
+            {% else %}
+                <a href="{% url 'delete_prescription' %}" class="btn btn-outline-danger btn-sm"
+                   onclick="return confirm('Remove this prescription image?')">Remove image</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- READABLE VERSION (OCR-assisted, doctor/caregiver reviewed) -->
+    <div class="card p-4 mb-4">
+        <h3 style="font-size:16px;" class="mb-2">Readable version</h3>
+        <p class="med-meta mb-3">
+            A best-effort typed reading of the handwriting, reviewed and corrected by a doctor or caregiver —
+            never auto-trusted on its own.
+        </p>
+
+        {% if role == 'doctor' or role == 'caregiver' %}
+            <button type="button" id="runOcrBtn" class="btn btn-outline-primary btn-sm mb-3">Scan handwriting (OCR)</button>
+            <div id="ocrStatus" class="med-meta mb-2" style="display:none;"></div>
+
+            <textarea id="prescriptionTextArea" class="form-control mb-3" rows="4"
+                      placeholder="Run OCR above, or type the reading directly, then confirm.">{{ patient_profile.prescription_confirmed_text|default:'' }}</textarea>
+            <button type="button" id="confirmTextBtn" class="btn btn-primary btn-sm">Confirm this reading</button>
+            <span id="confirmStatus" class="med-meta ms-2"></span>
+        {% else %}
+            {% if patient_profile.prescription_confirmed_text %}
+                <div class="card p-3" style="background:var(--primary-soft); border-color:transparent;">
+                    <p class="mb-1">{{ patient_profile.prescription_confirmed_text }}</p>
+                    <p class="med-meta mb-0" style="font-size:12px;">
+                        Confirmed by {{ patient_profile.prescription_confirmed_by.username|default:"—" }}
+                        {% if patient_profile.prescription_confirmed_at %}on {{ patient_profile.prescription_confirmed_at|date:"M d, Y" }}{% endif %}
+                    </p>
+                </div>
+            {% else %}
+                <p class="med-meta mb-0">Not confirmed by your doctor/caregiver yet.</p>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="card p-3 mb-4 med-meta">No prescription image uploaded yet.</div>
+    {% endif %}
+
+    <div class="card p-4">
+        <h3 style="font-size:16px;" class="mb-3">
+            {% if patient_profile.prescription_image %}Replace image{% else %}Upload image{% endif %}
+        </h3>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Select prescription image</label>
+                <input type="file" class="form-control" name="prescription_image" id="prescription_image" accept="image/*" required>
+            </div>
+
+            <div id="previewBox" style="display:none;" class="mb-3 text-center">
+                <img id="previewImg" src="#" alt="Preview"
+                     style="max-width:100%; max-height:250px; border-radius:8px; border:1px solid var(--line); object-fit:contain;">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                {% if patient_profile.prescription_image %}Replace{% else %}Upload{% endif %} prescription
+            </button>
+        </form>
+    </div>
+
+    <div class="mt-3">
+        {% if role == 'doctor' %}
+            <a href="{% url 'patient_detail' patient.id %}" class="btn btn-outline-primary">Back</a>
+        {% elif role == 'caregiver' %}
+            <a href="{% url 'caregiver_dashboard' %}" class="btn btn-outline-primary">Back</a>
+        {% else %}
+            <a href="{% url 'user_dashboard' %}" class="btn btn-outline-primary">Back</a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.getElementById('prescription_image').addEventListener('change', function () {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('previewBox').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+const patientId = {{ patient.id|default:"null" }};
+
+const runOcrBtn = document.getElementById('runOcrBtn');
+if (runOcrBtn) {
+    runOcrBtn.addEventListener('click', async function () {
+        const statusEl = document.getElementById('ocrStatus');
+        statusEl.style.display = 'block';
+        statusEl.textContent = 'Scanning...';
+        runOcrBtn.disabled = true;
+        try {
+            const resp = await fetch('/api/prescription/ocr/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({patient_id: patientId})
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                document.getElementById('prescriptionTextArea').value = data.ocr_text;
+                statusEl.textContent = data.note;
+            } else {
+                statusEl.textContent = 'Error: ' + (data.error || 'OCR failed');
+            }
+        } catch (e) {
+            statusEl.textContent = 'Could not reach the server.';
+        } finally {
+            runOcrBtn.disabled = false;
+        }
+    });
+}
+
+const confirmTextBtn = document.getElementById('confirmTextBtn');
+if (confirmTextBtn) {
+    confirmTextBtn.addEventListener('click', async function () {
+        const text = document.getElementById('prescriptionTextArea').value.trim();
+        const statusEl = document.getElementById('confirmStatus');
+        if (!text) { statusEl.textContent = 'Enter some text first.'; return; }
+        confirmTextBtn.disabled = true;
+        statusEl.textContent = 'Saving...';
+        try {
+            const resp = await fetch('/api/prescription/confirm-text/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({patient_id: patientId, confirmed_text: text})
+            });
+            const data = await resp.json();
+            statusEl.textContent = resp.ok ? '✓ Confirmed' : ('Error: ' + (data.error || 'failed'));
+        } catch (e) {
+            statusEl.textContent = 'Could not reach the server.';
+        } finally {
+            confirmTextBtn.disabled = false;
+        }
+    });
+}
+</script>
+</script>
+{% endblock %}

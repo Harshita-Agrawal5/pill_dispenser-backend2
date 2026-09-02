@@ -1,0 +1,52 @@
+{% extends 'main/base.html' %}
+{% block content %}
+
+<div class="card p-4" style="max-width:640px; margin:0 auto;">
+
+    <div class="text-center mb-4">
+        <div class="avatar-circle">{{ profile_user.username|first|upper }}</div>
+        <h3 class="mt-2 mb-0">{{ profile_user.username }}</h3>
+        <p class="med-meta">{{ profile.role|title }}</p>
+    </div>
+
+    <div class="row g-3 text-center mb-3">
+        <div class="col-md-4">
+            <div class="card stat-card p-3">
+                <div class="label">Age</div>
+                <div class="med-name">{{ profile.age|default:"-" }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card p-3">
+                <div class="label">Gender</div>
+                <div class="med-name">{{ profile.gender|default:"-" }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card p-3">
+                <div class="label">Phone</div>
+                <div class="med-name">{{ profile.phone|default:"-" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-3">
+        <div class="label" style="font-size:13px;color:var(--ink-muted);font-weight:500;margin-bottom:4px;">Address</div>
+        <p class="mb-0">{{ profile.address|default:"Not provided" }}</p>
+    </div>
+
+    <div class="card p-3 mb-4">
+        <div class="label" style="font-size:13px;color:var(--ink-muted);font-weight:500;margin-bottom:4px;">Medical history</div>
+        <p class="mb-0">{{ profile.medical_history|default:"No history added" }}</p>
+    </div>
+
+    <div class="text-center d-flex gap-2 justify-content-center">
+        {% if request.user == profile_user %}
+        <a href="{% url 'edit_profile' %}" class="btn btn-primary">Edit profile</a>
+        {% endif %}
+        <button onclick="history.back()" class="btn btn-outline-primary">Back</button>
+    </div>
+
+</div>
+
+{% endblock %}

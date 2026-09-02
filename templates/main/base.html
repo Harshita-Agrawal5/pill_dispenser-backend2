@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MediCue</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg:        #F4F6F5;
+            --surface:   #FFFFFF;
+            --ink:       #1F2A28;
+            --ink-muted: #5C6B67;
+            --line:      #DCE3E0;
+
+            --primary:      #3A6B63;
+            --primary-dark: #274A44;
+            --primary-soft: #E4ECE9;
+
+            --accent-amber:      #E08E45;
+            --accent-amber-soft: #FBEBDB;
+            --accent-blue:       #4C7EA8;
+            --accent-blue-soft:  #E3ECF3;
+            --accent-plum:       #8B5A8C;
+            --accent-plum-soft:  #F0E4EF;
+
+            --taken:      #4F8F6B;
+            --taken-soft: #E4F0E7;
+            --missed:      #C15A45;
+            --missed-soft: #F7E6E1;
+            --pending:      #D19A3D;
+            --pending-soft: #FAF0DC;
+
+            --radius: 14px;
+            --radius-sm: 10px;
+            --shadow: 0 2px 10px rgba(31,42,40,0.06);
+        }
+
+        .dark-mode {
+            --bg:        #14201D;
+            --surface:   #1C2B27;
+            --ink:       #EEF3F1;
+            --ink-muted: #9BADA8;
+            --line:      #2C3E39;
+            --primary-soft: #223A34;
+        }
+
+        * { transition: background-color .15s ease, border-color .15s ease; }
+
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: -0.01em;
+        }
+
+        .mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.02em; }
+
+        a { color: var(--primary); }
+
+        /* ---------- NAVBAR ---------- */
+        .app-nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+            padding: 14px 28px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            font-size: 20px;
+            color: var(--ink) !important;
+            text-decoration: none;
+        }
+        .brand-mark {
+            width: 26px; height: 26px; flex-shrink: 0;
+        }
+        .nav-actions { display: flex; align-items: center; gap: 6px; }
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            color: var(--ink-muted);
+            cursor: pointer;
+        }
+        .icon-btn:hover { background: var(--primary-soft); color: var(--primary-dark); }
+        .icon-btn:focus-visible, .btn:focus-visible, a:focus-visible {
+            outline: 2px solid var(--primary); outline-offset: 2px;
+        }
+        .text-link-btn {
+            border: none; background: none; color: var(--ink-muted);
+            font-size: 14px; font-weight: 500; padding: 8px 10px; border-radius: 8px;
+        }
+        .text-link-btn:hover { background: var(--primary-soft); color: var(--primary-dark); }
+
+        /* ---------- CARDS ---------- */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        /* ---------- BUTTONS ---------- */
+        .btn-primary {
+            background: var(--primary); border-color: var(--primary);
+            border-radius: var(--radius-sm); font-weight: 500;
+        }
+        .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+        .btn-outline-primary {
+            color: var(--primary); border-color: var(--primary); border-radius: var(--radius-sm); font-weight: 500;
+        }
+        .btn-outline-primary:hover { background: var(--primary); border-color: var(--primary); }
+
+        /* ---------- CAPSULE STATUS BADGE (signature element) ---------- */
+        .capsule {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px 5px 6px;
+            border-radius: 999px;
+            font-size: 13px; font-weight: 600;
+            border: 1px solid transparent;
+        }
+        .capsule svg { width: 16px; height: 16px; }
+        .capsule--taken   { background: var(--taken-soft);   color: var(--taken); }
+        .capsule--missed  { background: var(--missed-soft);  color: var(--missed); }
+        .capsule--pending { background: var(--pending-soft); color: var(--pending); }
+
+        /* half-filled pill dot inside the capsule */
+        .capsule-dot {
+            width: 14px; height: 14px; border-radius: 999px; flex-shrink: 0;
+            position: relative; overflow: hidden; border: 1.5px solid currentColor;
+        }
+        .capsule-dot::after {
+            content: ""; position: absolute; inset: 0; left: 50%;
+            background: currentColor;
+        }
+
+        /* ---------- REMINDER TOAST ---------- */
+        #medicinePopup {
+            display: none;
+            position: fixed; bottom: 26px; right: 26px; width: 320px;
+            background: var(--surface); color: var(--ink);
+            border: 1px solid var(--line); border-left: 4px solid var(--pending);
+            padding: 18px 20px; border-radius: var(--radius);
+            box-shadow: 0 12px 30px rgba(31,42,40,0.18);
+            z-index: 9999; animation: slideIn .4s ease;
+        }
+        #medicinePopup h5 { font-size: 16px; margin-bottom: 4px; }
+        #medicinePopup p { font-size: 14px; color: var(--ink-muted); margin-bottom: 12px; }
+        @keyframes slideIn {
+            from { transform: translateY(12px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        .goog-te-banner-frame.skiptranslate { display: none !important; }
+        body { top: 0px !important; }
+
+        /* ---------- SHARED COMPONENTS (used across all pages) ---------- */
+        .page-title { margin-bottom: 24px; }
+
+        .stat-card { padding: 18px 20px; }
+        .stat-card .label { font-size: 13px; color: var(--ink-muted); font-weight: 500; margin-bottom: 4px; }
+        .stat-card .value { font-family: 'IBM Plex Mono', monospace; font-size: 30px; font-weight: 500; }
+        .stat-card--taken   { background: var(--taken-soft);   border-color: transparent; }
+        .stat-card--taken   .label, .stat-card--taken   .value { color: var(--taken); }
+        .stat-card--missed  { background: var(--missed-soft);  border-color: transparent; }
+        .stat-card--missed  .label, .stat-card--missed  .value { color: var(--missed); }
+        .stat-card--pending { background: var(--pending-soft); border-color: transparent; }
+        .stat-card--pending .label, .stat-card--pending .value { color: var(--pending); }
+
+        .med-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 4px; border-bottom: 1px solid var(--line); }
+        .med-row:last-child { border-bottom: none; }
+        .med-name { font-weight: 600; font-size: 15px; }
+        .med-meta { font-size: 13px; color: var(--ink-muted); }
+        .med-time { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink-muted); }
+
+        .action-btn {
+            width: 34px; height: 34px; border-radius: 999px; display: inline-flex;
+            align-items: center; justify-content: center; border: 1px solid var(--line); background: var(--surface);
+        }
+        .action-btn.take:hover { background: var(--taken-soft); border-color: var(--taken); color: var(--taken); }
+        .action-btn.miss:hover { background: var(--missed-soft); border-color: var(--missed); color: var(--missed); }
+
+        .role-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+            background: var(--primary-soft); color: var(--primary-dark);
+        }
+
+        .avatar-circle {
+            width: 72px; height: 72px; border-radius: 999px; background: var(--primary);
+            color: #fff; display: inline-flex; align-items: center; justify-content: center;
+            font-family: 'Fraunces', serif; font-size: 28px; font-weight: 600;
+        }
+
+        .form-control, .form-select {
+            border: 1px solid var(--line); border-radius: var(--radius-sm);
+            padding: 10px 12px; background: var(--surface); color: var(--ink);
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
+        }
+        .form-label { font-weight: 500; font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+
+        .table-clean { width: 100%; border-collapse: collapse; }
+        .table-clean th {
+            text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em;
+            color: var(--ink-muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line);
+        }
+        .table-clean td { padding: 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+        .table-clean tr:last-child td { border-bottom: none; }
+
+        .patient-card {
+            border: 1px solid var(--line); border-radius: var(--radius); padding: 16px;
+            background: var(--surface); height: 100%; display: flex; flex-direction: column;
+        }
+        .rx-thumb { width: 100%; max-height: 110px; object-fit: contain; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; }
+
+        .empty-state { text-align: center; color: var(--ink-muted); padding: 32px 16px; font-size: 14px; }
+
+        /* ---------- POLISH: hover, motion, responsiveness ---------- */
+        .card { transition: box-shadow .18s ease, transform .18s ease; }
+        .card:hover { box-shadow: 0 6px 20px rgba(31,42,40,0.09); }
+        .patient-card:hover, .stat-card:hover { transform: translateY(-2px); }
+
+        .btn { transition: background-color .15s ease, transform .1s ease, border-color .15s ease; }
+        .btn:active { transform: scale(0.97); }
+
+        .capsule { transition: transform .12s ease; }
+
+        ::selection { background: var(--primary-soft); color: var(--primary-dark); }
+
+        /* section header with icon slot */
+        .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+        .section-head svg { color: var(--primary); flex-shrink: 0; }
+        .section-head h3 { margin: 0; font-size: 18px; }
+
+        @media (max-width: 576px) {
+            .app-nav { padding: 12px 16px; }
+            .brand { font-size: 17px; }
+            .nav-actions { gap: 2px; }
+            .icon-btn { width: 36px; height: 36px; }
+            .container { padding-left: 14px; padding-right: 14px; }
+            .stat-card .value { font-size: 24px; }
+            .auth-card { width: 92vw; padding: 32px 22px; }
+        }
+
+        /* ---------- HERO BANNER (gradient greeting card) ---------- */
+        .hero {
+            position: relative; overflow: hidden;
+            border-radius: 20px; padding: 28px 30px;
+            background: linear-gradient(120deg, var(--primary-dark) 0%, var(--primary) 55%, #4C8A7E 100%);
+            color: #fff; margin-bottom: 26px;
+        }
+        .hero::before {
+            content: ""; position: absolute; width: 220px; height: 220px; border-radius: 999px;
+            background: rgba(255,255,255,0.08); top: -90px; right: -60px;
+        }
+        .hero::after {
+            content: ""; position: absolute; width: 140px; height: 140px; border-radius: 999px;
+            background: rgba(255,255,255,0.06); bottom: -70px; right: 90px;
+        }
+        .hero h2 { color: #fff; font-size: 24px; margin-bottom: 4px; position: relative; }
+        .hero p { color: rgba(255,255,255,0.85); font-size: 14px; margin: 0; position: relative; }
+        .hero .hero-badge {
+            position: relative; display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.16); padding: 6px 14px; border-radius: 999px;
+            font-size: 12px; font-weight: 600; margin-top: 14px;
+        }
+
+        /* ---------- ICON STAT CARDS ---------- */
+        .istat {
+            display: flex; align-items: center; gap: 14px; padding: 18px;
+            border-radius: 16px; border: 1px solid var(--line); background: var(--surface);
+        }
+        .istat-icon {
+            width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .istat-icon svg { width: 22px; height: 22px; }
+        .istat .value { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 500; line-height: 1; }
+        .istat .label { font-size: 12.5px; color: var(--ink-muted); font-weight: 500; margin-top: 3px; }
+
+        .istat--blue   .istat-icon { background: var(--accent-blue-soft);  color: var(--accent-blue); }
+        .istat--taken  .istat-icon { background: var(--taken-soft);        color: var(--taken); }
+        .istat--missed .istat-icon { background: var(--missed-soft);       color: var(--missed); }
+        .istat--pending .istat-icon{ background: var(--pending-soft);      color: var(--pending); }
+        .istat--plum   .istat-icon { background: var(--accent-plum-soft); color: var(--accent-plum); }
+        .istat--amber  .istat-icon { background: var(--accent-amber-soft);color: var(--accent-amber); }
+
+        /* ---------- friendly empty state illustration ---------- */
+        .empty-illustration { width: 84px; height: 84px; margin: 0 auto 12px; opacity: 0.55; }
+    </style>
+</head>
+
+<body>
+
+<nav class="app-nav">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+
+        <a class="brand" href="{% url 'home' %}">
+            <svg class="brand-mark" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="9" width="22" height="8" rx="4" stroke="#3A6B63" stroke-width="2"/>
+                <path d="M13 9V17" stroke="#3A6B63" stroke-width="2"/>
+                <rect x="2" y="9" width="11" height="8" rx="4" fill="#3A6B63"/>
+            </svg>
+            MediCue
+        </a>
+
+        <div class="nav-actions">
+            <button onclick="testAudio()" class="icon-btn" title="Enable audio reminders" aria-label="Enable audio reminders" id="audioBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/>
+                </svg>
+            </button>
+            <select id="langSelect" onchange="changeLanguage(this.value)" class="text-link-btn" style="border:1px solid var(--line); cursor:pointer; padding-right:4px;">
+                <option value="en">English</option>
+                <option value="hi">हिन्दी</option>
+                <option value="ta">தமிழ்</option>
+                <option value="te">తెలుగు</option>
+                <option value="kn">ಕನ್ನಡ</option>
+                <option value="ml">മലയാളം</option>
+                <option value="bn">বাংলা</option>
+                <option value="mr">मराठी</option>
+                <option value="gu">ગુજરાતી</option>
+                <option value="pa">ਪੰਜਾਬੀ</option>
+            </select>
+
+            <button onclick="toggleTheme()" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/>
+                </svg>
+            </button>
+
+            <a class="icon-btn" href="{% url 'home' %}" title="Dashboard" aria-label="Dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/>
+                    <rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>
+                </svg>
+            </a>
+
+            <a class="icon-btn" href="{% url 'logout' %}" title="Log out" aria-label="Log out">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+
+<div id="google_translate_element" style="display:none;"></div>
+<script>
+function googleTranslateElementInit() {
+    new google.translate.TranslateElement({ pageLanguage: 'en', includedLanguages: 'hi,ta,te,kn,ml,bn,mr,gu,pa' }, 'google_translate_element');
+}
+</script>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<script>
+function changeLanguage(lang) {
+    if (lang === 'en') {
+        document.cookie = "googtrans=;path=/;expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+        document.cookie = "googtrans=;path=/;domain=" + window.location.hostname + ";expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    } else {
+        document.cookie = "googtrans=/en/" + lang + ";path=/;";
+    }
+    location.reload();
+}
+// keep the dropdown showing the currently active language after reload
+(function () {
+    const match = document.cookie.match(/googtrans=\/en\/([a-z-]+)/);
+    if (match) {
+        const sel = document.getElementById('langSelect');
+        if (sel) sel.value = match[1];
+    }
+})();
+</script>
+function toggleTheme() {
+    document.body.classList.toggle("dark-mode");
+    localStorage.setItem("theme", document.body.classList.contains("dark-mode"));
+}
+if (localStorage.getItem("theme") === "true") { document.body.classList.add("dark-mode"); }
+</script>
+
+<div id="medicinePopup" role="status">
+    <h5 id="popupTitle">Time for your medicine</h5>
+    <p id="popupText">It's time to take your next dose.</p>
+    <div class="d-flex gap-2">
+        <button onclick="replayVoice()" class="btn btn-outline-primary btn-sm">🔊 Play aloud</button>
+        <button onclick="closePopup()" class="btn btn-primary btn-sm">Got it</button>
+    </div>
+</div>
+
+<script>
+let audioUnlocked = false;
+
+// Browsers require a user gesture before allowing speech synthesis.
+// This unlocks it silently on the very first click/tap anywhere on the page.
+document.addEventListener('click', function unlockAudio() {
+    audioUnlocked = true;
+    document.removeEventListener('click', unlockAudio);
+}, { once: true });
+
+function speak(text) {
+    if (!audioUnlocked || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    // small delay avoids a known Chrome bug where speak() right after cancel() gets silently dropped
+    setTimeout(() => {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 0.95;
+        utter.pitch = 1;
+        utter.volume = 1;
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length) {
+            const enVoice = voices.find(v => v.lang && v.lang.startsWith('en')) || voices[0];
+            utter.voice = enVoice;
+        }
+        window.speechSynthesis.speak(utter);
+    }, 150);
+}
+
+// Some browsers load voices asynchronously — warm the list up early.
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+function testAudio() {
+    audioUnlocked = true;
+    const btn = document.getElementById('audioBtn');
+    btn.style.color = 'var(--primary)';
+    btn.style.borderColor = 'var(--primary)';
+    speak("Audio reminders are now enabled.");
+}
+
+// Called by page-specific scripts (e.g. patient dashboard) with the real
+// medicine name/time — this is the ONLY place that shows + speaks a reminder.
+let lastReminderText = "";
+function showNotification(title, text) {
+    document.getElementById("popupTitle").innerText = title;
+    document.getElementById("popupText").innerText = text;
+    lastReminderText = title + ". " + text;
+    let popup = document.getElementById("medicinePopup");
+    popup.style.display = "block";
+    speak(lastReminderText);
+    setTimeout(() => { popup.style.display = "none"; }, 20000);
+}
+function replayVoice() {
+    audioUnlocked = true; // this click itself counts as a fresh, direct user gesture
+    speak(lastReminderText);
+}
+function closePopup() {
+    document.getElementById("medicinePopup").style.display = "none";
+    window.speechSynthesis.cancel();
+}
+</script>
+
+</body>
+</html>

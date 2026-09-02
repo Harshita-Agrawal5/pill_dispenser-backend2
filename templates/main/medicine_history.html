@@ -1,0 +1,32 @@
+{% extends 'main/base.html' %}
+{% block content %}
+
+<h2 class="page-title">Medicine history</h2>
+
+<div class="card p-4">
+    {% if history %}
+        {% for h in history %}
+        <div class="med-row">
+            <div>
+                <div class="med-name">{{ h.medicine.name }} <span class="med-meta">— {{ h.medicine.dosage }} · {{ h.medicine.time }}</span></div>
+                <div class="med-meta">Patient: {{ h.medicine.patient.username }}</div>
+                <div class="med-meta">
+                    Prescribed by: {% if h.medicine.prescribed_by %}{{ h.medicine.prescribed_by.username }}{% else %}N/A{% endif %}
+                </div>
+                <div class="med-time">{{ h.timestamp }}</div>
+            </div>
+            {% if h.action == 'taken' %}
+                <span class="capsule capsule--taken"><span class="capsule-dot"></span> Taken</span>
+            {% elif h.action == 'missed' %}
+                <span class="capsule capsule--missed"><span class="capsule-dot"></span> Missed</span>
+            {% else %}
+                <span class="capsule capsule--pending"><span class="capsule-dot"></span> {{ h.action|title }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="empty-state">No history available.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

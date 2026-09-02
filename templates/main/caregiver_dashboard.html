@@ -1,0 +1,134 @@
+{% extends 'main/base.html' %}
+{% load i18n %}
+{% block content %}
+
+<div class="hero">
+    <h2>{% trans "Welcome back" %}, {{ request.user.username|title }} 👋</h2>
+    <p>{% trans "Here's how your patients are doing today." %}</p>
+    <span class="hero-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        {{ patients|length }} {% trans "patients under your care" %}
+    </span>
+</div>
+
+<div class="text-end mb-4">
+    <a href="{% url 'dispenser_status' %}" class="btn btn-outline-primary">{% trans "Dispenser status" %}</a>
+</div>
+
+{% if overdue_medicines %}
+<div class="card p-3 mb-4" style="border-left:4px solid var(--missed); background:var(--missed-soft);">
+    <div class="d-flex align-items-start gap-2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C15A45" stroke-width="2" style="flex-shrink:0; margin-top:2px;">
+            <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <div>
+            <div class="med-name" style="color:var(--missed);">{% trans "Missed-dose alert" %}</div>
+            <div class="med-meta">
+                {% for med in overdue_medicines %}
+                    {{ med.patient.username }} — {{ med.name }} ({{ med.time|time:"H:i" }}){% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                {% trans "have not been marked more than 30 minutes past schedule." %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- SUMMARY -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="istat istat--blue">
+            <div class="istat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div><div class="value">{{ medicines|length }}</div><div class="label">{% trans "Total medicines" %}</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="istat istat--taken">
+            <div class="istat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg></div>
+            <div><div class="value">{{ taken_count }}</div><div class="label">{% trans "Taken" %}</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="istat istat--missed">
+            <div class="istat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            <div><div class="value">{{ missed_count }}</div><div class="label">{% trans "Missed" %}</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- PATIENTS -->
+{% if patients %}
+<div class="card p-4 mb-4">
+    <h3 class="section-title mb-3" style="font-size:18px;">{% trans "Your patients" %}</h3>
+    <div class="row g-3">
+        {% for patient in patients %}
+        <div class="col-md-4">
+            <div class="patient-card">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="avatar-circle" style="width:40px;height:40px;font-size:16px;">{{ patient.username|first|upper }}</div>
+                    <div class="med-name">{{ patient.username }}</div>
+                </div>
+
+                {% if patient.profile.prescription_image %}
+                    <img src="{{ patient.profile.prescription_image.url }}" alt="Prescription" class="rx-thumb mb-2"
+                         onclick="openImage('{{ patient.profile.prescription_image.url }}')">
+                    <div class="med-meta mb-2">{% trans "Prescription on file" %}</div>
+                {% else %}
+                    <div class="med-meta mb-2">{% trans "No prescription uploaded" %}</div>
+                {% endif %}
+
+                <div class="d-flex gap-2 mt-auto flex-wrap">
+                    <a href="{% url 'caregiver_add_medicine' patient.id %}" class="btn btn-primary btn-sm">+ {% trans "Add medicine" %}</a>
+                    <a href="{% url 'upload_prescription_for' patient.id %}" class="btn btn-outline-primary btn-sm">{% trans "Prescription" %}</a>
+                    <a href="{% url 'patient_profile' patient.id %}" class="btn btn-outline-primary btn-sm">{% trans "Profile" %}</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- MEDICINES -->
+<div class="card p-4">
+    <h3 class="section-title mb-3" style="font-size:18px;">{% trans "Medicines" %}</h3>
+    {% for med in medicines %}
+    <div class="med-row">
+        <div>
+            <div class="med-name">{{ med.name }} {% if med.dosage %}<span class="med-meta">— {{ med.dosage }}</span>{% endif %}</div>
+            <div class="med-meta">{% trans "Patient" %}: {{ med.patient.username }}</div>
+            <div class="med-time">{{ med.time|time:"H:i" }}</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% if med.status == 'taken' %}
+                <span class="capsule capsule--taken"><span class="capsule-dot"></span> {% trans "Taken" %}</span>
+            {% elif med.status == 'missed' %}
+                <span class="capsule capsule--missed"><span class="capsule-dot"></span> {% trans "Missed" %}</span>
+            {% else %}
+                <span class="capsule capsule--pending"><span class="capsule-dot"></span> {% trans "Pending" %}</span>
+                <a href="{% url 'take_medicine' med.id %}" class="action-btn take" title="Mark taken">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><path d="M5 13l4 4L19 7"/></svg>
+                </a>
+                <a href="{% url 'mark_missed' med.id %}" class="action-btn miss" title="Mark missed">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p class="empty-state">{% trans "No medicines assigned for your patients." %}</p>
+    {% endfor %}
+</div>
+
+<div id="imgModal" onclick="closeModal()"
+     style="display:none; position:fixed; inset:0; background:rgba(20,32,29,0.9); z-index:9999; justify-content:center; align-items:center; cursor:zoom-out;">
+    <img id="imgModalSrc" src="" alt="Prescription" style="max-width:92vw; max-height:92vh; border-radius:12px;">
+</div>
+
+<script>
+function openImage(url) { document.getElementById('imgModalSrc').src = url; document.getElementById('imgModal').style.display = 'flex'; }
+function closeModal() { document.getElementById('imgModal').style.display = 'none'; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+
+{% endblock %}

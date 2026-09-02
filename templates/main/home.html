@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+        .navbar {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .container {
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        a {
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h2>Pill Dispenser </h2>
+    <a href="/logout/">Logout</a>
+</div>
+
+<div class="container">
+    <h2>Welcome {{ request.user.username }} 🎉</h2>
+
+    <div class="card">
+        <h3>Your Medicines</h3>
+        <p>No medicines added yet.</p>
+    </div>
+
+    <div class="card">
+        <h3>Reminders</h3>
+        <p>No reminders set.</p>
+    </div>
+</div>
+
+</body>
+</html>

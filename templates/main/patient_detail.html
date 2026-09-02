@@ -1,0 +1,128 @@
+{% extends 'main/base.html' %}
+{% block content %}
+
+<h2 class="mb-3">Patient: {{ patient.username }}</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card stat-card--taken">
+            <div class="label">Taken</div>
+            <div class="value">{{ taken_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card stat-card--missed">
+            <div class="label">Missed</div>
+            <div class="value">{{ missed_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card stat-card--pending">
+            <div class="label">Pending</div>
+            <div class="value">{{ pending_count }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 style="font-size:16px;" class="mb-0">Prescription image</h3>
+        <div class="d-flex gap-2">
+            <a href="{% url 'upload_prescription_for' patient.id %}" class="btn btn-outline-primary btn-sm">
+                {% if patient_profile.prescription_image %}Replace{% else %}Upload{% endif %}
+            </a>
+            {% if patient_profile.prescription_image %}
+            <a href="{% url 'delete_prescription_for' patient.id %}" class="btn btn-outline-danger btn-sm"
+               onclick="return confirm('Remove prescription image?')">Remove</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if patient_profile.prescription_image %}
+    <div class="text-center">
+        <img src="{{ patient_profile.prescription_image.url }}" alt="Prescription"
+             onclick="openImage('{{ patient_profile.prescription_image.url }}')"
+             style="max-width:100%; max-height:300px; border-radius:10px; border:1px solid var(--line); object-fit:contain; cursor:pointer;">
+        <div class="med-meta mt-2">Click image to view full size</div>
+    </div>
+    {% else %}
+    <p class="med-meta mb-0">No prescription uploaded yet. <a href="{% url 'upload_prescription_for' patient.id %}">Upload now →</a></p>
+    {% endif %}
+</div>
+
+<div class="card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 style="font-size:16px;" class="mb-0">Medicines</h3>
+        <a href="{% url 'add_medicine' patient.id %}" class="btn btn-primary btn-sm">+ Add medicine</a>
+    </div>
+
+    {% if medicines %}
+    <table class="table-clean">
+        <thead>
+            <tr><th>Name</th><th>Dosage</th><th>Time</th><th>Status</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            {% for med in medicines %}
+            <tr>
+                <td>{{ med.name }}</td>
+                <td>{{ med.dosage }}</td>
+                <td>{{ med.time }}</td>
+                <td>
+                    {% if med.status == 'taken' %}
+                        <span class="capsule capsule--taken"><span class="capsule-dot"></span> Taken</span>
+                    {% elif med.status == 'missed' %}
+                        <span class="capsule capsule--missed"><span class="capsule-dot"></span> Missed</span>
+                    {% else %}
+                        <span class="capsule capsule--pending"><span class="capsule-dot"></span> Pending</span>
+                    {% endif %}
+                </td>
+                <td>{{ med.notes }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No medicines assigned yet.</p>
+    {% endif %}
+</div>
+
+<div class="mb-4">
+    <a href="{% url 'doctor_dashboard' %}" class="btn btn-outline-primary">← Back to dashboard</a>
+</div>
+
+<div class="card p-4">
+    <canvas id="medicineChart" height="90"></canvas>
+</div>
+
+<div id="imgModal" onclick="closeModal()"
+     style="display:none; position:fixed; inset:0; background:rgba(20,32,29,0.9); z-index:9999; justify-content:center; align-items:center; cursor:zoom-out;">
+    <img id="imgModalSrc" src="" alt="Prescription" style="max-width:92vw; max-height:92vh; border-radius:12px;">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('medicineChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Taken', 'Missed', 'Pending'],
+        datasets: [{
+            label: 'Medicine status',
+            data: [{{ taken_count }}, {{ missed_count }}, {{ pending_count }}],
+            backgroundColor: ['#4F8F6B', '#B5533F', '#C08A2E'],
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false }, title: { display: true, text: 'Medicine status overview' } },
+        scales: { y: { beginAtZero: true, precision: 0 } }
+    }
+});
+
+function openImage(url) { document.getElementById('imgModalSrc').src = url; document.getElementById('imgModal').style.display = 'flex'; }
+function closeModal() { document.getElementById('imgModal').style.display = 'none'; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+
+{% endblock %}

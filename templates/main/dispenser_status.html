@@ -1,0 +1,36 @@
+{% extends 'main/base.html' %}
+{% load i18n %}
+{% block content %}
+
+<h2 class="page-title text-center">{% trans "Dispenser status" %}</h2>
+
+<div class="row g-3">
+    {% for slot in slots %}
+    <div class="col-md-4">
+        <div class="card p-3">
+            <div class="med-name mb-1">{{ slot.medicine_name }}</div>
+            <div class="med-meta mb-3">{% trans "Quantity" %}: {{ slot.quantity }}</div>
+
+            {% if slot.quantity == 0 %}
+                <span class="capsule capsule--missed"><span class="capsule-dot"></span> {% trans "Empty" %}</span>
+            {% elif slot.actual_medicine and slot.actual_medicine != slot.expected_medicine %}
+                <span class="capsule capsule--pending"><span class="capsule-dot"></span> {% trans "Wrong medicine" %}</span>
+            {% else %}
+                <span class="capsule capsule--taken"><span class="capsule-dot"></span> OK</span>
+            {% endif %}
+
+            {% if role == 'caregiver' %}
+            <form method="POST" action="{% url 'refill_slot' slot.id %}" class="d-flex gap-2 mt-3">
+                {% csrf_token %}
+                <input type="number" name="quantity" min="0" class="form-control form-control-sm" placeholder="{% trans 'New qty' %}" required>
+                <button type="submit" class="btn btn-primary btn-sm text-nowrap">{% trans "Refill" %}</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p class="empty-state">{% trans "No dispenser slots configured yet." %}</p>
+    {% endfor %}
+</div>
+
+{% endblock %}
